@@ -1,0 +1,18 @@
+# AG-UI with Microsoft Agent Framework Demo
+# Basic server and client setup
+
+# Core Agent Framework with AG-UI integration
+agent-framework-ag-ui>=0.1.0
+
+# Dependencies (automatically installed with agent-framework-ag-ui):
+# - agent-framework-core
+# - fastapi
+# - uvicorn
+# - httpx
+# - azure-identity
+
+# Optional: If you want to specify versions explicitly
+# agent-framework-core>=0.1.0
+# fastapi>=0.100.0
+# uvicorn>=0.23.0
+# azure-identity>=1.15.0
