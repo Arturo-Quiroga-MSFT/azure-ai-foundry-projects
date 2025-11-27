@@ -1,9 +1,10 @@
 # AG-UI with Microsoft Agent Framework Demo
 
 This demo demonstrates the basic AG-UI integration with Microsoft Agent Framework, featuring:
-- **Server**: AG-UI server hosting an AI agent via HTTP
+- **Server**: AG-UI server hosting an AI agent via HTTP (3 variants!)
 - **Client**: Interactive client with streaming responses
 - **Protocol**: Server-Sent Events (SSE) for real-time streaming
+- **Multi-Provider**: Support for Azure OpenAI and Azure AI Foundry
 
 ## Prerequisites
 
@@ -11,6 +12,16 @@ This demo demonstrates the basic AG-UI integration with Microsoft Agent Framewor
 - Azure OpenAI service endpoint and deployment configured
 - Azure CLI installed and authenticated (`az login`)
 - User has `Cognitive Services OpenAI Contributor` role for the Azure OpenAI resource
+
+## Server Variants
+
+We provide **three server implementations** to explore different Azure AI options:
+
+1. **`server.py`** - Azure OpenAI (direct OpenAI models)
+2. **`server_azure_ai.py`** - Azure AI Foundry (model catalog, multi-provider)
+3. **`server_multi_provider.py`** - Configurable (switch via environment variable)
+
+See [PROVIDER_COMPARISON.md](PROVIDER_COMPARISON.md) for detailed guidance on which to use.
 
 ## Installation
 
@@ -21,56 +32,77 @@ This demo demonstrates the basic AG-UI integration with Microsoft Agent Framewor
 
 2. **Install required packages**:
    ```bash
-   pip install agent-framework-ag-ui
+   pip install agent-framework-ag-ui azure-ai-inference
    ```
 
    This installs:
    - `agent-framework-core` - Core agent functionality
    - `agent-framework-ag-ui` - AG-UI integration
+   - `azure-ai-inference` - Azure AI Foundry support
    - `fastapi` - Web framework
    - `uvicorn` - ASGI server
+   - `azure-identity` - Authentication
 
 3. **Configure environment**:
    ```bash
    # Copy the example environment file
    cp .env.example .env
    
-   # Edit .env with your Azure OpenAI credentials
+   # Edit .env with your Azure credentials
    ```
 
 ## Configuration
 
-Set your Azure OpenAI credentials in `.env`:
+### Option 1: Azure OpenAI (server.py)
 
 ```bash
 export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com/"
 export AZURE_OPENAI_DEPLOYMENT_NAME="gpt-4o-mini"
 ```
 
-Or set them directly in your shell:
+### Option 2: Azure AI Foundry (server_azure_ai.py)
 
 ```bash
-export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com/"
-export AZURE_OPENAI_DEPLOYMENT_NAME="gpt-4o-mini"
+export AZURE_AI_ENDPOINT="https://your-project.inference.ai.azure.com/"
+# Optional: Use API key or managed identity will be used
+export AZURE_AI_API_KEY="your-api-key"
+```
+
+### Option 3: Multi-Provider (server_multi_provider.py)
+
+```bash
+# Choose provider
+export AZURE_PROVIDER="azure-openai"  # or "azure-ai"
+
+# Then set the appropriate credentials for your chosen provider
 ```
 
 ## Running the Demo
 
 ### Step 1: Start the Server
 
-In terminal 1:
+Choose one of the server variants:
+
+#### Option A: Azure OpenAI
 ```bash
 cd /Users/arturoquiroga/GITHUB/FOUNDRY-Nov-2025/agui_maf_demo
 python server.py
 ```
 
-You should see:
+#### Option B: Azure AI Foundry
+```bash
+cd /Users/arturoquiroga/GITHUB/FOUNDRY-Nov-2025/agui_maf_demo
+python server_azure_ai.py
 ```
-🚀 Starting AG-UI Server...
-📡 Endpoint: https://your-resource.openai.azure.com/
-🤖 Model: gpt-4o-mini
-🌐 Server URL: http://127.0.0.1:8888/
+
+#### Option C: Multi-Provider (Configurable)
+```bash
+cd /Users/arturoquiroga/GITHUB/FOUNDRY-Nov-2025/agui_maf_demo
+export AZURE_PROVIDER="azure-openai"  # or "azure-ai"
+python server_multi_provider.py
 ```
+
+You should see output indicating the server has started.
 
 ### Step 2: Run the Client
 
@@ -193,8 +225,19 @@ Change the port in server.py:
 uvicorn.run(app, host="127.0.0.1", port=8889)  # Use different port
 ```
 
+## Understanding Azure Providers
+
+See [PROVIDER_COMPARISON.md](PROVIDER_COMPARISON.md) for a detailed comparison of:
+- When to use Azure OpenAI vs Azure AI Foundry
+- Feature differences and trade-offs
+- Migration strategies
+- Authentication options
+- Use case recommendations
+
 ## Resources
 
 - [AG-UI Documentation](https://docs.ag-ui.com/)
 - [Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/)
 - [AG-UI Getting Started](https://learn.microsoft.com/en-us/agent-framework/integrations/ag-ui/getting-started)
+- [Azure OpenAI Service](https://learn.microsoft.com/azure/ai-services/openai/)
+- [Azure AI Foundry](https://learn.microsoft.com/azure/ai-studio/)

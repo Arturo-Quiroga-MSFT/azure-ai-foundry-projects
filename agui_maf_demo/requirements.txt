@@ -1,18 +1,22 @@
 # AG-UI with Microsoft Agent Framework Demo
-# Basic server and client setup
+# Supports both Azure OpenAI and Azure AI Foundry
 
 # Core Agent Framework with AG-UI integration
 agent-framework-ag-ui>=0.1.0
+
+# Azure AI Inference SDK (for Azure AI Foundry support)
+azure-ai-inference>=1.0.0b1
+
+# Azure Identity (for authentication)
+azure-identity>=1.15.0
 
 # Dependencies (automatically installed with agent-framework-ag-ui):
 # - agent-framework-core
 # - fastapi
 # - uvicorn
 # - httpx
-# - azure-identity
 
 # Optional: If you want to specify versions explicitly
 # agent-framework-core>=0.1.0
 # fastapi>=0.100.0
 # uvicorn>=0.23.0
-# azure-identity>=1.15.0
