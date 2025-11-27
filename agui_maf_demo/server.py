@@ -5,6 +5,10 @@ It uses FastAPI for HTTP handling and streams responses via Server-Sent Events (
 """
 
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from agent_framework import ChatAgent
 from agent_framework.azure import AzureOpenAIChatClient

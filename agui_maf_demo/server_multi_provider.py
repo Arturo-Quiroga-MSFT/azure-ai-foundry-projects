@@ -9,6 +9,10 @@ environment variable. This allows you to:
 
 import os
 from typing import Literal
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from agent_framework import ChatAgent
 from agent_framework_ag_ui import add_agent_framework_fastapi_endpoint

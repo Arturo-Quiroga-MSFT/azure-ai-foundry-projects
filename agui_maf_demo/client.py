@@ -6,6 +6,10 @@ with streaming responses displayed in real-time.
 
 import asyncio
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from agent_framework import ChatAgent
 from agent_framework_ag_ui import AGUIChatClient
@@ -18,7 +22,7 @@ async def main():
     print(f"🔌 Connecting to AG-UI server at: {server_url}\n")
 
     # Create AG-UI chat client that connects to the server
-    chat_client = AGUIChatClient(server_url=server_url)
+    chat_client = AGUIChatClient(endpoint=server_url)
 
     # Create agent with the chat client
     agent = ChatAgent(

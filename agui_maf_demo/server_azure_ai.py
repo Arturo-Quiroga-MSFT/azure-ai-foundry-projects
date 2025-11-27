@@ -8,6 +8,10 @@ instead of Azure OpenAI. This is useful for:
 """
 
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from agent_framework import ChatAgent
 from agent_framework.azure import AzureAIChatClient
