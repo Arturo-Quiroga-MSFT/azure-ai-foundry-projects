@@ -104,6 +104,12 @@ async def root():
 # Create and register the financial analysis agent
 try:
     logger.info("Creating Financial Analysis Agent...")
+    
+    # Set environment variables from settings for agent to use
+    os.environ["AZURE_OPENAI_ENDPOINT"] = settings.AZURE_OPENAI_ENDPOINT
+    os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"] = settings.AZURE_OPENAI_DEPLOYMENT_NAME
+    os.environ["AZURE_OPENAI_API_VERSION"] = settings.AZURE_OPENAI_API_VERSION
+    
     financial_agent = get_agent()
     
     # Register AG-UI endpoint

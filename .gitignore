@@ -34,6 +34,15 @@ virtualenv/
 .env.*.local
 *.env
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+package-lock.json
+
 # IDE
 .vscode/
 .idea/
