@@ -1,0 +1,9 @@
+# Sample outputs directory
+# Generated reports, charts, and data files will be saved here
+
+*.md
+*.png
+*.jpg
+*.svg
+*.csv
+*.json

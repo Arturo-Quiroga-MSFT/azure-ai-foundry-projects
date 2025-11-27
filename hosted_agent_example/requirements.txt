@@ -1,0 +1,17 @@
+# Azure AI Foundry Hosted Agent Dependencies
+
+# Core hosting adapter for LangGraph
+azure-ai-agentserver-langgraph
+
+# LangChain and LangGraph
+langgraph
+langchain-openai
+langchain-core
+
+# Azure SDK for authentication and deployment
+azure-identity
+azure-ai-projects>=1.1.0b4  # Note: Hosted agent SDK support coming soon
+
+# Utilities
+python-dotenv
+requests

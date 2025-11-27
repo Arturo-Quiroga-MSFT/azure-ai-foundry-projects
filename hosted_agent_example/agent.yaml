@@ -1,0 +1,16 @@
+name: my-hosted-agent
+description: A LangGraph agent with weather and calculator tools
+template:
+  kind: "hosted"
+  cpu: "1"
+  memory: "2Gi"
+  min_replicas: 1
+  max_replicas: 3
+  environment_variables:
+    AZURE_OPENAI_ENDPOINT: "https://aq-ai-foundry-sweden-central.openai.azure.com/"
+    AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: "gpt-5-mini"
+    AZURE_OPENAI_API_VERSION: "2025-04-01-preview"
+  container_protocol_versions:
+    - protocol: "responses"
+      version: "v1"
+
