@@ -1,38 +1,93 @@
-# .dockerignore for backend
-__pycache__/
+# .dockerignore for backend - exclude everything not needed for production
+
+# Frontend app (CRITICAL - not needed in backend image, this is HUGE 391MB!)
+agui_web_ui
+agui_web_ui/**
+node_modules
+**/node_modules
+**/.next
+.next
+
+# Python virtual environments (CRITICAL - these are huge!)
+.venv
+venv
+env
+ENV
+.Python
+
+# Python cache and build artifacts
+__pycache__
 *.py[cod]
 *$py.class
 *.so
-.Python
-env/
-venv/
-.venv/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
+*.egg-info
 .installed.cfg
 *.egg
-.env
-.vscode/
-.idea/
-*.log
+build
+develop-eggs
+dist
+downloads
+eggs
+.eggs
+lib
+lib64
+parts
+sdist
+var
+wheels
+pip-wheel-metadata
+.pytest_cache
+.mypy_cache
+.tox
+
+# Git and version control (can be large)
+.git
+.gitignore
+.gitattributes
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
 .DS_Store
-copilotkit_demo/
-agui_web_ui/
+
+# Environment and secrets
+#.env
+#.env.*
+
+# Documentation
+*.md
+docs
+.azure
+
+# Unused Python files (keep only server_magentic.py)
 client*.py
 server_azure_ai.py
 server_multi_provider.py
 server_with_tools.py
 server.py
-*.md
+server_multi_agent.py
+
+# Demo and test files
+copilotkit_demo
+tests
+test_*.py
+
+# Logs
+*.log
+logs
+
+# Azure and deployment files
+infra
+azure.yaml
+deploy.sh
+Dockerfile
+.dockerignore
+DEPLOYMENT_GUIDE.md
+
+# Temporary files
+*.tmp
+*.temp
+.cache

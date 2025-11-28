@@ -1,28 +1,27 @@
 # AG-UI with Microsoft Agent Framework Demo
-# Supports both Azure OpenAI and Azure AI Foundry
+# Latest versions of all packages
 
 # Core Agent Framework with AG-UI integration
-agent-framework-ag-ui>=0.1.0
+agent-framework-ag-ui
 
 # Load environment variables from .env file
-python-dotenv>=1.0.0
+python-dotenv
 
 # Timezone support for get_current_time tool
-pytz>=2023.3
+pytz
 
 # Azure AI Inference SDK (for Azure AI Foundry support)
-azure-ai-inference>=1.0.0b1
+azure-ai-inference
 
 # Azure Identity (for authentication)
-azure-identity>=1.15.0
+azure-identity
 
-# Dependencies (automatically installed with agent-framework-ag-ui):
-# - agent-framework-core
-# - fastapi
-# - uvicorn
-# - httpx
+# External API integrations
+tavily-python
+httpx
 
-# Optional: If you want to specify versions explicitly
-# agent-framework-core>=0.1.0
-# fastapi>=0.100.0
-# uvicorn>=0.23.0
+# Data science and visualization
+matplotlib
+numpy
+pandas
+seaborn

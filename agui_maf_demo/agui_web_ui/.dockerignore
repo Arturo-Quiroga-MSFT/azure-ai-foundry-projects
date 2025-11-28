@@ -1,15 +1,54 @@
-# .dockerignore for frontend
+# .dockerignore for frontend - exclude everything not needed for production
+
+# Node modules (CRITICAL - this is huge!)
 node_modules/
+
+# Next.js build output (rebuilt in Docker)
 .next/
+out/
+
+# Git and version control
 .git/
 .gitignore
-*.md
-.env*.local
+.gitattributes
+
+# IDE and editor files
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 .DS_Store
+
+# Environment files
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+
+# Documentation
+*.md
+README*
+
+# Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.npm
+
+# Demo and test files
 copilotkit_demo/
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+.turbo/
+.vercel/

@@ -21,12 +21,27 @@ load_dotenv()
 from agent_framework import ChatAgent, ai_function
 from agent_framework.azure import AzureOpenAIChatClient
 from agent_framework_ag_ui import add_agent_framework_fastapi_endpoint
-from azure.identity import AzureCliCredential
+from azure.identity import DefaultAzureCredential, AzureCliCredential
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import Field
 import httpx
 from tavily import TavilyClient
+import os
+
+# Determine which credential to use based on environment
+# In Azure Container Apps, use DefaultAzureCredential (managed identity)
+# In local development, use AzureCliCredential
+def get_azure_credential():
+    """Get the appropriate Azure credential based on environment."""
+    if os.getenv("WEBSITE_INSTANCE_ID") or os.getenv("CONTAINER_APP_NAME"):
+        # Running in Azure (App Service or Container Apps)
+        print("🔐 Using DefaultAzureCredential (Managed Identity)")
+        return DefaultAzureCredential()
+    else:
+        # Running locally
+        print("🔐 Using AzureCliCredential (Local Development)")
+        return AzureCliCredential()
 
 # Global storage for images
 image_storage = {}
@@ -211,7 +226,7 @@ if not endpoint or not deployment_name:
     raise ValueError("AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_DEPLOYMENT_NAME required")
 
 chat_client = AzureOpenAIChatClient(
-    credential=AzureCliCredential(),
+    credential=get_azure_credential(),
     endpoint=endpoint,
     deployment_name=deployment_name,
 )

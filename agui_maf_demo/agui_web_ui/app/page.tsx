@@ -86,7 +86,7 @@ function RichContent({ content }: { content: string }) {
               }}
             >
               <img 
-                src={`http://127.0.0.1:8888/images/${imageId}`} 
+                src={`${backendUrl}/images/${imageId}`} 
                 alt={`Visualization ${idx + 1}`} 
                 style={{ 
                   width: "100%", 
@@ -141,6 +141,7 @@ function RichContent({ content }: { content: string }) {
 }
 
 export default function Home() {
+  const [backendUrl, setBackendUrl] = useState("http://127.0.0.1:8888");
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -150,6 +151,21 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load backend URL from runtime config
+  useEffect(() => {
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => {
+        if (data.backendUrl) {
+          setBackendUrl(data.backendUrl);
+        }
+      })
+      .catch(() => {
+        // Fallback to localhost for development
+        console.log("Using localhost backend");
+      });
+  }, []);
 
   const sampleQuestions = [
     "🌤️ Research weather in Paris and London, then create a comparison chart",
@@ -187,7 +203,7 @@ export default function Home() {
 
     try {
       // Send full conversation history to maintain context
-      const response = await fetch("http://127.0.0.1:8888/", {
+      const response = await fetch(`${backendUrl}/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

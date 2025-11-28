@@ -185,14 +185,34 @@ BACKEND_IDENTITY=$(az containerapp show --name $BACKEND_APP_NAME --resource-grou
 
 if [ -n "$BACKEND_IDENTITY" ]; then
     # Extract OpenAI resource info from endpoint
+    # Format: https://resource-name.openai.azure.com/
     OPENAI_RESOURCE_NAME=$(echo $AZURE_OPENAI_ENDPOINT | sed -E 's|https://([^.]+)\..*|\1|')
     
-    # Try to grant Cognitive Services OpenAI User role (may fail if already exists or no permission)
-    az role assignment create \
-        --assignee $BACKEND_IDENTITY \
-        --role "Cognitive Services OpenAI User" \
-        --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/*/providers/Microsoft.CognitiveServices/accounts/$OPENAI_RESOURCE_NAME" \
-        2>/dev/null || echo "⚠️  Could not grant OpenAI role (may already exist or require manual setup)"
+    echo "Granting 'Cognitive Services OpenAI User' role to backend identity..."
+    echo "  Backend Principal ID: $BACKEND_IDENTITY"
+    echo "  OpenAI Resource: $OPENAI_RESOURCE_NAME"
+    
+    # Try to find the OpenAI resource ID
+    OPENAI_RESOURCE_ID=$(az cognitiveservices account show \
+        --name $OPENAI_RESOURCE_NAME \
+        --query id -o tsv 2>/dev/null || echo "")
+    
+    if [ -n "$OPENAI_RESOURCE_ID" ]; then
+        echo "  OpenAI Resource ID: $OPENAI_RESOURCE_ID"
+        az role assignment create \
+            --assignee $BACKEND_IDENTITY \
+            --role "Cognitive Services OpenAI User" \
+            --scope "$OPENAI_RESOURCE_ID" \
+            2>/dev/null && echo "✅ Role assigned successfully" || echo "⚠️  Role assignment failed (may already exist)"
+    else
+        echo "⚠️  Could not find OpenAI resource. Please manually assign 'Cognitive Services OpenAI User' role:"
+        echo "    az role assignment create \\"
+        echo "      --assignee $BACKEND_IDENTITY \\"
+        echo "      --role 'Cognitive Services OpenAI User' \\"
+        echo "      --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/YOUR_OPENAI_RG/providers/Microsoft.CognitiveServices/accounts/$OPENAI_RESOURCE_NAME"
+    fi
+else
+    echo "⚠️  Could not get backend identity"
 fi
 
 # Get frontend URL
