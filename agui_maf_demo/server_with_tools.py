@@ -21,7 +21,10 @@ from agent_framework.azure import AzureOpenAIChatClient
 from agent_framework_ag_ui import add_agent_framework_fastapi_endpoint
 from azure.identity import AzureCliCredential
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import Field
+import httpx
+from tavily import TavilyClient
 
 
 # ========================================
@@ -30,24 +33,36 @@ from pydantic import Field
 
 @ai_function
 def get_weather(
-    location: Annotated[str, Field(description="The city and country, e.g., 'Paris, France'")],
+    location: Annotated[str, Field(description="The city name, e.g., 'Paris' or 'Toronto'")],
 ) -> str:
     """Get the current weather for a location.
     
     Use this tool when the user asks about weather conditions, temperature,
     or climate in a specific location.
     """
-    # Simulated weather data - in production, call a real weather API
-    weather_data = {
-        "Paris, France": "sunny, 22°C",
-        "London, UK": "cloudy, 15°C",
-        "New York, USA": "rainy, 18°C",
-        "Tokyo, Japan": "clear, 25°C",
-        "Sydney, Australia": "partly cloudy, 20°C",
-    }
+    api_key = os.environ.get("OPENWEATHER_API_KEY")
+    if not api_key:
+        return "Weather API key not configured. Please add OPENWEATHER_API_KEY to .env file."
     
-    weather = weather_data.get(location, "sunny, 20°C")
-    return f"The weather in {location} is {weather}."
+    try:
+        # Call OpenWeatherMap API
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
+        response = httpx.get(url, timeout=10.0)
+        response.raise_for_status()
+        data = response.json()
+        
+        temp = data["main"]["temp"]
+        feels_like = data["main"]["feels_like"]
+        description = data["weather"][0]["description"]
+        humidity = data["main"]["humidity"]
+        
+        return f"The weather in {location} is {description} with a temperature of {temp}°C (feels like {feels_like}°C). Humidity: {humidity}%."
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            return f"City '{location}' not found. Please check the spelling."
+        return f"Error fetching weather: {str(e)}"
+    except Exception as e:
+        return f"Error getting weather data: {str(e)}"
 
 
 @ai_function
@@ -125,6 +140,43 @@ def get_current_time(
     except Exception as e:
         return f"Error getting time for timezone '{timezone}': {str(e)}"
 
+@ai_function
+def web_search(
+    query: Annotated[str, Field(description="The search query to look up on the web")],
+    max_results: Annotated[int, Field(description="Maximum number of results to return")] = 5,
+) -> dict[str, Any]:
+    """Search the web for current information.
+    
+    Use this tool when the user asks about:
+    - Current events, news, or recent developments
+    - Information that may have changed recently
+    - Topics that require up-to-date information
+    - General web searches
+    """
+    api_key = os.environ.get("TAVILY_API_KEY")
+    if not api_key:
+        return {"error": "Tavily API key not configured. Please add TAVILY_API_KEY to .env file."}
+    
+    try:
+        tavily_client = TavilyClient(api_key=api_key)
+        response = tavily_client.search(query=query, max_results=max_results)
+        
+        results = []
+        for result in response.get("results", []):
+            results.append({
+                "title": result.get("title"),
+                "url": result.get("url"),
+                "content": result.get("content"),
+                "score": result.get("score"),
+            })
+        
+        return {
+            "query": query,
+            "results_count": len(results),
+            "results": results,
+        }
+    except Exception as e:
+        return {"error": f"Error performing web search: {str(e)}"}
 
 # ========================================
 # Server Configuration
@@ -152,19 +204,30 @@ agent = ChatAgent(
     instructions="""You are a helpful assistant with access to several tools.
     
 Use the available tools when appropriate:
-- get_weather: For weather information
+- get_weather: For real-time weather information from OpenWeatherMap
 - search_restaurants: For finding dining options
 - calculate: For mathematical operations
-- get_current_time: For time information
+- get_current_time: For time information in any timezone
+- web_search: For current events, news, and up-to-date information from the web
 
 Always use tools when the user asks about these topics. Provide natural,
-conversational responses that incorporate the tool results.""",
+conversational responses that incorporate the tool results. When using web_search,
+summarize the key findings and cite sources.""",
     chat_client=chat_client,
-    tools=[get_weather, search_restaurants, calculate, get_current_time],
+    tools=[get_weather, search_restaurants, calculate, get_current_time, web_search],
 )
 
 # Create FastAPI app
 app = FastAPI(title="AG-UI Server with Backend Tools")
+
+# Add CORS middleware to allow requests from Next.js frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Register the AG-UI endpoint
 add_agent_framework_fastapi_endpoint(app, agent, "/")
@@ -175,7 +238,7 @@ if __name__ == "__main__":
     print("\n🚀 Starting AG-UI Server with Backend Tools...")
     print(f"📡 Endpoint: {endpoint}")
     print(f"🤖 Model: {deployment_name}")
-    print(f"🔧 Tools: get_weather, search_restaurants, calculate, get_current_time")
+    print(f"🔧 Tools: get_weather (OpenWeatherMap), search_restaurants, calculate, get_current_time, web_search (Tavily)")
     print(f"🌐 Server URL: http://127.0.0.1:8888/\n")
     
     uvicorn.run(app, host="127.0.0.1", port=8888)
