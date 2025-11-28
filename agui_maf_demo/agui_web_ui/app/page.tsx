@@ -8,11 +8,143 @@ interface Message {
   agentName?: string;
 }
 
+// Function to parse and render rich content
+function RichContent({ content }: { content: string }) {
+  // Parse weather icons
+  const weatherIconMatch = content.match(/\[WEATHER_ICON\](.*?)\[\/WEATHER_ICON\]/);
+  const weatherIcon = weatherIconMatch ? weatherIconMatch[1] : null;
+  let displayContent = content.replace(/\[WEATHER_ICON\].*?\[\/WEATHER_ICON\]/g, "");
+  
+  // Parse links
+  const linkRegex = /\[LINK\](.*?)\[\/LINK\]/g;
+  const links: string[] = [];
+  let match;
+  while ((match = linkRegex.exec(content)) !== null) {
+    links.push(match[1]);
+  }
+  displayContent = displayContent.replace(linkRegex, "");
+  
+  // Parse calculation results
+  const calcMatch = content.match(/\[CALC_RESULT\](.*?)\[\/CALC_RESULT\]/);
+  const calcResult = calcMatch ? calcMatch[1] : null;
+  displayContent = displayContent.replace(/\[CALC_RESULT\].*?\[\/CALC_RESULT\]/g, "");
+  
+  // Parse image IDs (not base64 - images stored on server)
+  const imageIdRegex = /\[IMAGE_ID\](.*?)\[\/IMAGE_ID\]/g;
+  const imageIds: string[] = [];
+  while ((match = imageIdRegex.exec(content)) !== null) {
+    imageIds.push(match[1]);
+  }
+  displayContent = displayContent.replace(imageIdRegex, "");
+  
+  // Convert markdown-style bold and code to HTML
+  displayContent = displayContent.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  displayContent = displayContent.replace(/`(.*?)`/g, "<code style='background:#f3f4f6;padding:2px 6px;border-radius:4px;'>$1</code>");
+  
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+      <div dangerouslySetInnerHTML={{ __html: displayContent.replace(/\n/g, "<br/>") }} />
+      
+      {weatherIcon && (
+        <div style={{ 
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          padding: "1rem",
+          borderRadius: "0.5rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
+          <img src={weatherIcon} alt="Weather" style={{ width: "64px", height: "64px" }} />
+        </div>
+      )}
+      
+      {calcResult && (
+        <div style={{
+          background: "#10b981",
+          color: "white",
+          padding: "1rem",
+          borderRadius: "0.5rem",
+          fontSize: "1.5rem",
+          fontWeight: "bold",
+          textAlign: "center"
+        }}>
+          = {calcResult}
+        </div>
+      )}
+      
+      {imageIds.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.5rem" }}>
+          {imageIds.map((imageId, idx) => (
+            <div 
+              key={idx} 
+              style={{ 
+                background: "white",
+                padding: "1rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #e5e7eb",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+              }}
+            >
+              <img 
+                src={`http://127.0.0.1:8888/images/${imageId}`} 
+                alt={`Visualization ${idx + 1}`} 
+                style={{ 
+                  width: "100%", 
+                  height: "auto",
+                  borderRadius: "0.25rem"
+                }} 
+              />
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {links.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
+          {links.map((link, idx) => (
+            <a
+              key={idx}
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: "#2563eb",
+                textDecoration: "none",
+                fontSize: "0.875rem",
+                padding: "0.5rem",
+                background: "#eff6ff",
+                borderRadius: "0.375rem",
+                border: "1px solid #bfdbfe",
+                display: "block",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#dbeafe";
+                e.currentTarget.style.borderColor = "#60a5fa";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#eff6ff";
+                e.currentTarget.style.borderColor = "#bfdbfe";
+              }}
+            >
+              🔗 {link}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hi! 👋 I'm your AG-UI assistant. I can help you with weather, restaurants, calculations, and more. What would you like to know?",
+      content: "Hi! 👋 I'm your AG-UI assistant with code interpreter capabilities. I can help you with weather, web search, calculations, data analytics, and visualizations. What would you like to explore?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -20,11 +152,14 @@ export default function Home() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const sampleQuestions = [
-    "What's the weather in Paris?",
-    "Calculate 123 * 456",
-    "Find Italian restaurants in London",
-    "What time is it in Tokyo?",
-    "Search the web for latest AI news",
+    "🌤️ Research weather in Paris and London, then create a comparison chart",
+    "📊 Find the top 3 AI trends and visualize their adoption rates",
+    "🎨 Create a beautiful 3D surface plot of z = sin(√(x² + y²))",
+    "🌍 What's the weather in Tokyo and show me a temperature visualization",
+    "🔬 Plot the Mandelbrot set fractal with color gradient",
+    "📈 Search for recent breakthroughs in quantum computing and show timeline",
+    "🧮 Calculate (45 * 89) + (123 / 4) - 56 and explain the steps",
+    "📉 Analyze this sales data and create insights: Q1=120, Q2=150, Q3=95, Q4=200",
   ];
 
   const scrollToBottom = () => {
@@ -143,11 +278,10 @@ export default function Home() {
                     borderRadius: "0.75rem",
                     background: msg.role === "user" ? "#2563eb" : "#f3f4f6",
                     color: msg.role === "user" ? "#fff" : "#111827",
-                    whiteSpace: "pre-wrap",
                     wordBreak: "break-word",
                   }}
                 >
-                  {msg.content}
+                  {msg.role === "user" ? msg.content : <RichContent content={msg.content} />}
                 </div>
               </div>
             </div>

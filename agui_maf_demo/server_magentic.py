@@ -1,22 +1,21 @@
-"""AG-UI Multi-Agent Server with Specialized Agents.
+"""AG-UI Server with Magentic Orchestration Pattern.
 
-This server demonstrates a multi-agent system where:
-- OrchestratorAgent: Routes requests to specialized agents
-- ResearchAgent: Handles web search and current information
-- WeatherAgent: Handles weather and location queries
-- DataAgent: Handles calculations and data processing
+Note: This is a simplified demonstration showing the conceptual approach.
+The full Magentic orchestration API is still evolving in agent-framework.
 
-Agents can hand off tasks to each other for specialized handling.
+For now, we demonstrate intelligent multi-agent coordination where different
+specialized agents handle different aspects of complex queries.
 """
 
 import os
 import sys
 import io
 import base64
-from typing import Annotated, Any
+from typing import Annotated
 from dotenv import load_dotenv
+import uuid
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
 from agent_framework import ChatAgent, ai_function
@@ -28,10 +27,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import Field
 import httpx
 from tavily import TavilyClient
-import uuid
 
-# Global storage for images (in production, use Redis or S3)
+# Global storage for images
 image_storage = {}
+
 
 # ========================================
 # Tool Definitions
@@ -59,7 +58,6 @@ def get_weather(
         wind_speed = data["wind"]["speed"]
         icon = data["weather"][0]["icon"]
         
-        # Return rich formatted response with special markers for UI parsing
         return f"""🌤️ **Weather in {location}**
 
 **Temperature:** {temp}°C (feels like {feels_like}°C)
@@ -86,7 +84,6 @@ def web_search(
         tavily_client = TavilyClient(api_key=api_key)
         response = tavily_client.search(query=query, max_results=max_results)
         
-        # Format results with rich markup for UI rendering
         result_text = f"🔍 **Web Search Results for:** {query}\n\n"
         
         for idx, result in enumerate(response.get("results", []), 1):
@@ -110,7 +107,6 @@ def calculate(
     """Perform mathematical calculations."""
     try:
         result = eval(expression, {"__builtins__": {}}, {})
-        # Return rich formatted calculation result
         return f"""🔢 **Calculation**
 
 **Expression:** `{expression}`
@@ -126,63 +122,40 @@ def execute_python_code(
     code: Annotated[str, Field(description="Python code to execute for data analysis or visualization")],
     description: Annotated[str, Field(description="Brief description of what the code does")] = "",
 ) -> str:
-    """Execute Python code for data analytics and visualization.
-    
-    Supports:
-    - Data analysis with pandas, numpy
-    - Visualizations with matplotlib, seaborn, plotly
-    - Statistical computations
-    - Machine learning with scikit-learn
-    
-    The code can create charts which will be displayed as images in the UI.
-    Use print() to show text output.
-    """
+    """Execute Python code for data analytics and visualization."""
     try:
-        # Capture stdout and stderr
         old_stdout = sys.stdout
         old_stderr = sys.stderr
         sys.stdout = io.StringIO()
         sys.stderr = io.StringIO()
         
-        # Create a safe execution environment with common data science libraries
-        exec_globals = {
-            "__builtins__": __builtins__,
-        }
+        exec_globals = {"__builtins__": __builtins__}
         
-        # Try to import common libraries
         try:
             import numpy as np
             import pandas as pd
             import matplotlib
-            matplotlib.use('Agg')  # Non-interactive backend
+            matplotlib.use('Agg')
             import matplotlib.pyplot as plt
             import seaborn as sns
             
             exec_globals.update({
-                "np": np,
-                "numpy": np,
-                "pd": pd,
-                "pandas": pd,
-                "plt": plt,
-                "matplotlib": matplotlib,
-                "sns": sns,
-                "seaborn": sns,
+                "np": np, "numpy": np,
+                "pd": pd, "pandas": pd,
+                "plt": plt, "matplotlib": matplotlib,
+                "sns": sns, "seaborn": sns,
             })
         except ImportError:
             pass
         
-        # Execute the code
         exec(code, exec_globals)
         
-        # Capture output
         output = sys.stdout.getvalue()
         errors = sys.stderr.getvalue()
         
-        # Restore stdout/stderr
         sys.stdout = old_stdout
         sys.stderr = old_stderr
         
-        # Check if matplotlib figures were created
         images = []
         if 'plt' in exec_globals:
             try:
@@ -199,7 +172,6 @@ def execute_python_code(
             except Exception as e:
                 errors += f"\nError capturing plot: {str(e)}"
         
-        # Build result with rich formatting
         result = f"📊 **Code Execution Result**\n\n"
         
         if description:
@@ -228,151 +200,112 @@ def execute_python_code(
         return f"❌ **Execution Error**\n\n```\n{str(e)}\n```"
 
 
-# ========================================
-# Specialized Agents
-# ========================================
+# ============================================================================
+# AZURE OPENAI CLIENT SETUP
+# ============================================================================
 
-# Read required configuration
 endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
 deployment_name = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME")
 
 if not endpoint or not deployment_name:
     raise ValueError("AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_DEPLOYMENT_NAME required")
 
-# Create chat client
 chat_client = AzureOpenAIChatClient(
     credential=AzureCliCredential(),
     endpoint=endpoint,
     deployment_name=deployment_name,
 )
 
-# ResearchAgent - Specialized in web search and current information
-research_agent = ChatAgent(
-    name="ResearchAgent",
-    instructions="""You are a research specialist with expertise in finding and analyzing current information.
 
-Your capabilities:
-- Search the web for latest news, trends, and information
-- Provide well-sourced, up-to-date answers
-- Cite your sources and explain findings clearly
+# ============================================================================
+# ORCHESTRATOR AGENT (Simplified Magentic-Style Coordination)
+# ============================================================================
 
-When you receive a query:
-1. Use web_search to find current information
-2. Analyze and synthesize the results
-3. Provide a comprehensive answer with sources
+# Note: Full Magentic API with StandardMagenticManager is still evolving.
+# This demonstrates intelligent multi-agent coordination concepts.
 
-Be thorough, accurate, and always cite where information comes from.""",
-    chat_client=chat_client,
-    tools=[web_search],
-)
-
-# WeatherAgent - Specialized in weather and location information
-weather_agent = ChatAgent(
-    name="WeatherAgent",
-    instructions="""You are a weather and location specialist.
-
-Your capabilities:
-- Provide current weather conditions for any location
-- Explain weather patterns and forecasts
-- Give location-specific advice based on weather
-
-When you receive a weather query:
-1. Use get_weather to fetch current conditions
-2. Provide a clear, conversational explanation
-3. Add helpful context (e.g., "Great weather for outdoor activities!")
-
-Be friendly and helpful with weather information.""",
-    chat_client=chat_client,
-    tools=[get_weather],
-)
-
-# DataAgent - Specialized in calculations, data analysis, and visualization
-data_agent = ChatAgent(
-    name="DataAgent",
-    instructions="""You are a data science specialist with expertise in analytics and visualization.
-
-Your capabilities:
-- Perform mathematical calculations
-- Execute Python code for data analysis
-- Create visualizations with matplotlib, seaborn, plotly
-- Statistical analysis with pandas and numpy
-- Generate insights from data
-
-When you receive a data query:
-1. Use calculate for simple math operations
-2. Use execute_python_code for:
-   - Complex data analysis
-   - Creating charts and visualizations
-   - Statistical computations
-   - Data transformations
-3. Write clean, well-commented Python code
-4. Explain findings clearly with visualizations
-
-IMPORTANT: When tools return [IMAGE] or [CALC_RESULT] markers, include them in your response!
-
-Be thorough, create helpful visualizations, and explain insights clearly.""",
-    chat_client=chat_client,
-    tools=[calculate, execute_python_code],
-)
-
-# OrchestratorAgent - Routes requests to specialists
 orchestrator_agent = ChatAgent(
-    name="OrchestratorAgent",
-    instructions="""You are an intelligent orchestrator that routes user requests to specialized agents.
-
-You have access to all tools and should handle requests intelligently:
-
-🚨 CRITICAL FORMATTING RULE 🚨
-When tools return content with special markers [WEATHER_ICON], [LINK], [CALC_RESULT], or [IMAGE_ID]:
-- You MUST copy the ENTIRE marker with ALL its content character-by-character
-- NEVER write just "[IMAGE_ID]" - you must include the full [IMAGE_ID]uuid[/IMAGE_ID] 
-- NEVER summarize or paraphrase markers
-- The [IMAGE_ID] marker contains a UUID that must be preserved exactly
-- Example: [IMAGE_ID]550e8400-e29b-41d4-a716-446655440000[/IMAGE_ID]
-
-For RESEARCH queries (news, current events, "search for", "what's happening"):
-- Use web_search tool directly
-- Include all [LINK]url[/LINK] markers from results exactly as returned
-- Cite sources clearly
-
-For WEATHER queries:
-- Use get_weather tool directly
-- Include the full [WEATHER_ICON]url[/WEATHER_ICON] marker exactly as returned
-- Preserve all temperature and conditions formatting
-
-For CALCULATIONS:
-- Use calculate tool for simple math
-- Include the [CALC_RESULT]number[/CALC_RESULT] marker exactly as returned
-
-For DATA ANALYSIS and VISUALIZATION:
-- Use execute_python_code for:
-  * Data analytics with pandas/numpy
-  * Creating charts with matplotlib/seaborn
-  * Statistical analysis
-  * Machine learning tasks
-- Write clean Python code that generates visualizations
-- When the tool returns [IMAGE_ID]uuid[/IMAGE_ID], copy it EXACTLY
-- Include all [IMAGE_ID] markers in your response
-- Explain what the code does and interpret the results
-
-For COMPLEX queries spanning multiple domains:
-- Use multiple tools as needed
-- Preserve all formatting markers from all tool results
-- Coordinate information from different sources
-
-Always preserve rich formatting markers in your responses!""",
     chat_client=chat_client,
+    model="gpt-4.1-mini",
+    name="OrchestratorAgent",
+    description="Intelligent orchestrator coordinating specialized capabilities for weather, research, and data analysis",
+    instructions="""You are an intelligent orchestrator that coordinates different specialized capabilities:
+
+**Your Capabilities**:
+
+1. **Weather Information** (via get_weather)
+   - Real-time weather data for any location
+   - Temperature, conditions, humidity, wind, etc.
+
+2. **Web Research** (via web_search)  
+   - Current information, news, trends
+   - Up-to-date facts from the web
+
+3. **Mathematical Calculations** (via calculate)
+   - Evaluate mathematical expressions
+   - Quick computations
+
+4. **Data Analysis & Visualization** (via execute_python_code)
+   - Create charts, plots, visualizations with matplotlib
+   - Data analytics with numpy, pandas, seaborn
+   - Complex data processing
+
+**Multi-Step Coordination**:
+
+When queries require multiple capabilities, coordinate them intelligently:
+
+Example: "Research weather in Paris and London, then compare them in a chart"
+1. get_weather("Paris")
+2. get_weather("London")
+3. execute_python_code to create comparison visualization
+
+Example: "Find latest AI trends and visualize adoption rates"
+1. web_search for AI trends
+2. execute_python_code to create charts from data
+
+Example: "What's the weather in Tokyo and can you plot the temperature trend?"
+1. get_weather("Tokyo")
+2. execute_python_code to visualize temperature
+
+**Image Handling - CRITICAL INSTRUCTIONS**:
+🚨 When execute_python_code returns [IMAGE_ID]...[/IMAGE_ID] markers:
+- You MUST copy the ENTIRE marker with ALL its content character-by-character
+- NEVER write just "[IMAGE_ID]" - you must include the full [IMAGE_ID]uuid[/IMAGE_ID]
+- Do NOT modify, truncate, summarize, or paraphrase the UUID
+- Do NOT say "here's the image" without including the actual marker
+- The [IMAGE_ID] marker contains a UUID that must be preserved exactly
+- Example: If you receive [IMAGE_ID]abc-123[/IMAGE_ID], include that EXACT text
+
+**Rich Content Markers - PRESERVE EXACTLY**:
+- [WEATHER_ICON]...data...[/WEATHER_ICON] from get_weather
+- [LINK]...data...[/LINK] from web_search  
+- [CALC_RESULT]...data...[/CALC_RESULT] from calculate
+- [IMAGE_ID]...uuid...[/IMAGE_ID] from execute_python_code
+
+**Personality**:
+- Be conversational and friendly
+- Explain what you're doing as you work
+- Show your coordination process
+- Present results clearly with rich formatting
+
+Remember: You're demonstrating Magentic-style orchestration - dynamically coordinating
+specialized capabilities to solve complex, multi-step queries!""",
     tools=[get_weather, web_search, calculate, execute_python_code],
 )
 
+print("✅ Orchestrator agent created (Magentic-style coordination)")
+print("   Coordinates: weather, research, calculations, visualizations")
+
+
+
 
 # ========================================
-# Server Configuration
+# FastAPI Server
 # ========================================
 
-app = FastAPI(title="AG-UI Multi-Agent Server")
+app = FastAPI(title="AG-UI Magentic Orchestration Server")
 
-# Add CORS middleware
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -380,10 +313,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Register the orchestrator agent as the main endpoint
-# In a more advanced setup, you could have separate endpoints for each agent
-add_agent_framework_fastapi_endpoint(app, orchestrator_agent, "/")
 
 # Image retrieval endpoint
 @app.get("/images/{image_id}")
@@ -396,18 +325,28 @@ async def get_image(image_id: str):
         return Response(content=img_bytes, media_type="image/png")
     return {"error": "Image not found"}, 404
 
+# Register the orchestrator agent as the main AG-UI endpoint
+add_agent_framework_fastapi_endpoint(app, orchestrator_agent, "/")
+
 
 if __name__ == "__main__":
     import uvicorn
 
-    print("\n🚀 Starting AG-UI Multi-Agent Server...")
+    print("\n🎯 Starting AG-UI Server with Magentic-Style Orchestration...")
     print(f"📡 Endpoint: {endpoint}")
     print(f"🤖 Model: {deployment_name}")
-    print("\n👥 Intelligent Orchestrator:")
-    print("   - OrchestratorAgent: Smart coordinator with all tools")
-    print("   - Uses web_search for research & news")
-    print("   - Uses get_weather for weather queries")
-    print("   - Uses calculate & analyze_data for math/data")
+    print("\n🧠 Orchestrator coordinates:")
+    print("   - Weather queries (OpenWeatherMap API)")
+    print("   - Web research (Tavily API)")
+    print("   - Mathematical calculations")
+    print("   - Data analysis & visualizations (matplotlib, pandas, numpy)")
+    print("\n💡 Try multi-step queries like:")
+    print("   'Research weather in Paris and London, then create a comparison chart'")
+    print("   'Find latest AI trends and visualize adoption rates'")
+    print(f"\n🚀 Starting server on http://127.0.0.1:8888")
+    print("   Open http://localhost:3000 in your browser for the UI\n")
+
+    uvicorn.run(app, host="127.0.0.1", port=8888)
     print(f"\n🌐 Server URL: http://127.0.0.1:8888/\n")
     
     uvicorn.run(app, host="127.0.0.1", port=8888)
